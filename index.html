@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Somewhere — a photobooth for people who haven't met yet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,ital@9..144,300..700,0,1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1a1613; --parchment:#efe7db; --parchment2:#e4d9c8;
+  --burgundy:#6d2a2f; --clay:#a9765c; --silver:#c9c2b8; --line:rgba(26,22,19,.16);
+  --serif:'Fraunces',serif; --sans:'Inter',sans-serif;
+  color-scheme: light;
+  padding-top: env(safe-area-inset-top,0px); padding-bottom: env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{margin:0;background:var(--parchment);color:var(--ink);font-family:var(--sans);overflow-x:hidden;}
+.grain{position:fixed;inset:0;pointer-events:none;opacity:.05;z-index:999;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+.view{min-height:100vh;display:none;flex-direction:column;}
+.view.active{display:flex;}
+button{font-family:var(--sans);cursor:pointer;}
+.btn{border:1px solid var(--ink);background:transparent;color:var(--ink);padding:14px 30px;font-size:14px;letter-spacing:.03em;transition:background .25s,color .25s;}
+.btn:hover{background:var(--ink);color:var(--parchment);}
+.btn.solid{background:var(--ink);color:var(--parchment);}
+.btn.solid:hover{background:var(--burgundy);border-color:var(--burgundy);}
+.btn:disabled{opacity:.35;cursor:default;pointer-events:none;}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--burgundy);outline-offset:3px;}
+
+/* ---------- LANDING ---------- */
+#landing{justify-content:center;position:relative;padding:8vh 6vw;}
+.strip-float{position:absolute;width:110px;background:#fff;padding:8px 8px 20px;box-shadow:0 20px 40px rgba(0,0,0,.18);border:1px solid var(--line);transform:rotate(var(--r));}
+.strip-float div{height:70px;background:linear-gradient(135deg,var(--silver),var(--parchment2));margin-bottom:6px;}
+#f1{top:12%;left:6%;--r:-9deg;animation:drift 9s ease-in-out infinite;}
+#f2{bottom:10%;right:8%;--r:7deg;animation:drift 11s ease-in-out infinite reverse;}
+@keyframes drift{0%,100%{transform:rotate(var(--r)) translateY(0)}50%{transform:rotate(var(--r)) translateY(-14px)}}
+@media (prefers-reduced-motion:reduce){.strip-float{animation:none}}
+.hero{max-width:640px;margin:auto;text-align:center;position:relative;z-index:2;}
+.hero h1{font-family:var(--serif);font-weight:500;font-size:clamp(2.4rem,6vw,4.2rem);line-height:1.05;margin:0 0 22px;}
+.hero p{font-size:17px;line-height:1.6;color:#4a423b;max-width:460px;margin:0 auto 40px;}
+.meta{margin-top:18px;font-size:13px;color:#6b625a;}
+@media(max-width:640px){.strip-float{display:none}}
+
+/* ---------- HOW IT WORKS ---------- */
+#how{padding:12vh 8vw;border-top:1px solid var(--line);}
+.steps{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:38px;}
+.step{display:flex;gap:24px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:30px;}
+.step:last-child{border-bottom:none;}
+.step .n{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--clay);width:26px;flex:none;}
+.step h3{font-family:var(--serif);font-weight:500;font-size:22px;margin:0 0 6px;}
+.step p{margin:0;color:#4a423b;font-size:15px;}
+
+/* ---------- QUESTIONS ---------- */
+#questions{justify-content:center;align-items:center;padding:8vh 6vw;background:radial-gradient(ellipse at 50% 0%,var(--parchment2) 0%,var(--parchment) 60%);}
+.qwrap{max-width:640px;width:100%;}
+.qtop{display:flex;align-items:center;gap:18px;margin-bottom:54px;}
+.qcount{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--clay);white-space:nowrap;}
+.pbar{height:1px;background:var(--line);position:relative;flex:1;}
+.pbar i{position:absolute;left:0;top:-1px;height:3px;background:var(--burgundy);transition:width .5s cubic-bezier(.4,0,.2,1);}
+.qprompt{font-family:var(--serif);font-weight:400;font-size:clamp(1.6rem,3.6vw,2.5rem);line-height:1.28;margin:0 0 48px;min-height:2.6em;letter-spacing:-.01em;
+  opacity:0;transform:translateY(10px);animation:qin .55s cubic-bezier(.2,.7,.3,1) forwards;}
+@keyframes qin{to{opacity:1;transform:translateY(0)}}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  opacity:0;transform:translateY(10px);animation:qin .55s cubic-bezier(.2,.7,.3,1) .1s forwards;}
+@media(max-width:600px){.opts{grid-template-columns:1fr;}}
+.opt{text-align:left;background:#fdfbf7;border:1px solid var(--line);padding:22px 20px;font-size:15px;line-height:1.45;color:var(--ink);
+  display:flex;flex-direction:column;gap:10px;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease,background .22s ease;}
+.opt .letter{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--clay);}
+.opt:hover,.opt:focus-visible{transform:translateY(-3px);border-color:var(--clay);box-shadow:0 14px 28px rgba(26,22,19,.1);}
+.opt.chosen{background:var(--ink);color:var(--parchment);border-color:var(--ink);transform:translateY(-3px);}
+.opt.chosen .letter{color:var(--silver);}
+
+/* ---------- BOOTH INTRO ---------- */
+#boothintro{justify-content:center;align-items:center;text-align:center;padding:6vh;background:var(--ink);}
+#boothintro h2{font-family:var(--serif);font-weight:400;font-style:italic;font-size:clamp(1.7rem,4vw,2.5rem);max-width:560px;color:var(--parchment);min-height:1.5em;}
+#boothintro .note{margin:26px 0 36px;font-size:13px;color:#a89f95;max-width:400px;opacity:0;transition:opacity .6s;}
+#boothintro .note.show{opacity:1;}
+#boothintro button{opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .6s,transform .6s;}
+#boothintro button.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+#boothintro .btn{border-color:var(--parchment);color:var(--parchment);}
+#boothintro .btn.solid{background:var(--parchment);color:var(--ink);}
+#boothintro .btn.solid:hover{background:var(--burgundy);color:var(--parchment);}
+
+/* ---------- BOOTH ---------- */
+#booth{justify-content:center;align-items:center;padding:5vh 6vw;text-align:center;background:var(--ink);}
+.frame{width:min(560px,90vw);background:#100e0c;padding:18px;position:relative;border:1px solid rgba(255,255,255,.08);}
+.camwrap{position:relative;aspect-ratio:4/3;background:#000;overflow:hidden;}
+#cam{width:100%;height:100%;object-fit:cover;display:block;background:#000;}
+#cam.mirror{transform:scaleX(-1);}
+.caminfo{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  color:#cfc7bc;background:#0c0a09;text-align:center;padding:24px;opacity:1;transition:opacity .3s;z-index:2;}
+.caminfo.hidden{opacity:0;pointer-events:none;}
+.spinner{width:26px;height:26px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--parchment);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.caminfo p{font-family:var(--serif);font-style:italic;font-size:15px;max-width:280px;margin:0;}
+.count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:5rem;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.6);opacity:0;pointer-events:none;z-index:3;}
+.count.show{opacity:1;transition:opacity .15s;}
+.flashfx{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4;}
+.flashfx.go{opacity:1;transition:opacity .06s;}
+.boothctrl{display:flex;justify-content:space-between;align-items:center;margin-top:16px;color:var(--parchment);font-size:12px;letter-spacing:.03em;}
+.prompt{font-family:var(--serif);font-style:italic;color:var(--parchment);margin:14px 0 4px;font-size:17px;min-height:1.4em;}
+.boothbtns{display:flex;gap:12px;justify-content:center;align-items:center;margin-top:22px;}
+.iconbtn{border:1px solid var(--line);background:transparent;color:var(--parchment);width:44px;height:44px;border-radius:50%;font-size:16px;border-color:rgba(255,255,255,.25);}
+.iconbtn:hover{border-color:var(--parchment);}
+.iconbtn:disabled{opacity:.3;pointer-events:none;}
+#booth .btn{border-color:var(--parchment);color:var(--parchment);}
+#booth .btn.solid{background:var(--parchment);color:var(--ink);}
+#booth .btn.solid:hover{background:var(--burgundy);color:var(--parchment);border-color:var(--burgundy);}
+
+/* ---------- DEVELOPING / STRIP ---------- */
+#developing{justify-content:center;align-items:center;text-align:center;}
+#developing p{font-family:var(--serif);font-style:italic;font-size:20px;}
+.dots span{animation:blink 1.4s infinite;}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+#stripview{justify-content:center;align-items:center;padding:6vh;text-align:center;}
+.stripcard{width:220px;background:#fdfbf7;padding:14px 14px 20px;box-shadow:0 30px 60px rgba(0,0,0,.2);border:1px solid var(--line);}
+.stripcard img{width:100%;display:block;margin-bottom:8px;filter:var(--fx,none);}
+.stripcard .foot{font-family:var(--serif);font-style:italic;font-size:11px;letter-spacing:.04em;color:#6b625a;margin-top:6px;}
+.fxrow{display:flex;gap:10px;justify-content:center;margin:26px 0;flex-wrap:wrap;}
+.fxbtn{border:1px solid var(--line);background:none;padding:8px 14px;font-size:12px;color:var(--ink);}
+.fxbtn.on{background:var(--ink);color:var(--parchment);border-color:var(--ink);}
+.actrow{display:flex;gap:14px;justify-content:center;margin-top:14px;flex-wrap:wrap;}
+
+/* ---------- FINDING / MATCH ---------- */
+#finding{justify-content:center;align-items:center;text-align:center;}
+#finding p{font-family:var(--serif);font-style:italic;font-size:22px;max-width:480px;opacity:0;animation:fadein .8s forwards;}
+@keyframes fadein{to{opacity:1}}
+
+#match{padding:6vh 6vw;align-items:center;}
+.matchgrid{max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;gap:30px;align-items:center;text-align:center;}
+@media(max-width:760px){.matchgrid{grid-template-columns:1fr;}}
+.side .who{font-size:12px;letter-spacing:.05em;color:#6b625a;margin-bottom:14px;}
+.side .stripcard{margin:0 auto;}
+.vibe{font-family:var(--serif);font-size:2.4rem;font-weight:500;color:var(--burgundy);}
+.vibe small{display:block;font-family:var(--sans);font-size:12px;color:#6b625a;margin-top:6px;letter-spacing:.02em;}
+.whytitle{font-family:var(--serif);font-weight:500;font-size:1.6rem;text-align:center;margin:56px 0 20px;}
+.reasons{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+.reason{border-top:1px solid var(--line);padding-top:14px;font-size:15px;color:#3a332e;}
+.matchcta{display:flex;gap:14px;justify-content:center;margin-top:48px;flex-wrap:wrap;}
+
+/* ---------- FOOTER ---------- */
+footer{padding:26px 6vw;display:flex;justify-content:space-between;font-size:12px;color:#6b625a;border-top:1px solid var(--line);flex-wrap:wrap;gap:10px;}
+footer .links{display:flex;gap:18px;}
+.skip{position:fixed;top:16px;right:16px;font-size:11px;color:#8a8178;background:none;border:none;z-index:5;text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- LANDING -->
+<section id="landing" class="view active">
+  <div class="strip-float" id="f1"><div></div><div></div><div></div></div>
+  <div class="strip-float" id="f2"><div></div><div></div><div></div></div>
+  <div class="hero">
+    <h1>Somewhere in the world, someone gets you.</h1>
+    <p>Answer a few questions. Take a few pictures. Meet a stranger who might have your exact kind of weird.</p>
+    <button class="btn solid" onclick="go('questions')">TAKE THE PHOTOBOOTH</button>
+    <div class="meta">10 questions · 4 photos · 1 stranger</div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS (visible on landing scroll) -->
+<section id="how" style="display:block" aria-hidden="false">
+  <div class="steps">
+    <div class="step"><span class="n">01</span><div><h3>Tell us a little about you.</h3><p>Ten questions, nothing like a personality test you've taken before.</p></div></div>
+    <div class="step"><span class="n">02</span><div><h3>Step into the booth.</h3><p>Four photos, your camera, no pressure.</p></div></div>
+    <div class="step"><span class="n">03</span><div><h3>Get your strip.</h3><p>Your photos become a photobooth strip you'll actually want to keep.</p></div></div>
+    <div class="step"><span class="n">04</span><div><h3>Meet someone.</h3><p>We find a person somewhere in the world who answered almost like you did.</p></div></div>
+  </div>
+</section>
+<footer><span>Somewhere, 2026 — an experiment, not a matchmaking service.</span><div class="links"><span>Privacy</span><span>How it works</span></div></footer>
+
+<!-- QUESTIONS -->
+<section id="questions" class="view">
+  <div class="qwrap">
+    <div class="qtop"><span class="qcount" id="qcount">01 / 10</span><div class="pbar"><i id="pbarfill" style="width:10%"></i></div></div>
+    <p class="qprompt" id="qprompt"></p>
+    <div class="opts" id="opts"></div>
+  </div>
+</section>
+
+<!-- BOOTH INTRO -->
+<section id="boothintro" class="view">
+  <h2 id="boothline"></h2>
+  <p class="note" id="boothnote">Your camera is only used to take your photos. Nothing is uploaded without your permission.</p>
+  <button class="btn solid" id="boothbtn" onclick="startBooth()">ENTER THE BOOTH →</button>
+</section>
+
+<!-- BOOTH -->
+<section id="booth" class="view">
+  <div>
+    <div class="frame">
+      <div class="camwrap">
+        <video id="cam" autoplay playsinline muted></video>
+        <div class="caminfo" id="caminfo">
+          <div class="spinner" id="camspinner"></div>
+          <p id="caminfotext">Waking up the camera…</p>
+          <button class="btn" id="camretry" style="display:none" onclick="openCam()">TRY AGAIN</button>
+        </div>
+        <div class="flashfx" id="flashfx"></div>
+        <div class="count" id="countel"></div>
+      </div>
+      <div class="prompt" id="shotprompt"></div>
+      <div class="boothctrl"><span id="shotlabel">PHOTO 01 / 04</span></div>
+    </div>
+    <div class="boothbtns">
+      <button class="iconbtn" id="flipbtn" title="Flip camera" onclick="flipCam()">⟳</button>
+      <button class="btn solid" id="shotbtn" onclick="beginCountdown()">TAKE PHOTO</button>
+      <button class="iconbtn" id="retakebtn" title="Retake last" onclick="retake()" disabled>↺</button>
+    </div>
+  </div>
+</section>
+
+<!-- DEVELOPING -->
+<section id="developing" class="view"><p>DEVELOPING YOUR STRIP<span class="dots"><span>.</span><span>.</span><span>.</span></span></p></section>
+
+<!-- STRIP -->
+<section id="stripview" class="view">
+  <div>
+    <div class="stripcard" id="mystrip"></div>
+    <div class="fxrow" id="fxrow">
+      <button class="fxbtn on" data-fx="none">Original</button>
+      <button class="fxbtn" data-fx="warm">Warm</button>
+      <button class="fxbtn" data-fx="bw">Black &amp; White</button>
+      <button class="fxbtn" data-fx="film">Film</button>
+      <button class="fxbtn" data-fx="soft">Soft Flash</button>
+    </div>
+    <div class="actrow">
+      <button class="btn" onclick="retakeAll()">TAKE IT AGAIN</button>
+      <button class="btn" onclick="downloadStrip(photos,'my-strip')">SAVE MY STRIP</button>
+      <button class="btn solid" onclick="go('finding'); findMatch();">FIND MY PERSON →</button>
+    </div>
+  </div>
+</section>
+
+<!-- FINDING -->
+<section id="finding" class="view"><p id="findingline">While you were taking your photos...</p></section>
+
+<!-- MATCH -->
+<section id="match" class="view">
+  <div class="matchgrid">
+    <div class="side"><div class="who">YOU</div><div class="stripcard" id="matchmine"></div></div>
+    <div class="vibe" id="vibescore">—<small>YOUR VIBE MATCH</small></div>
+    <div class="side"><div class="who" id="theirwho">SOMEONE, SOMEWHERE</div><div class="stripcard" id="matchtheirs"></div></div>
+  </div>
+  <div class="whytitle">YOU MIGHT GET ALONG BECAUSE…</div>
+  <div class="reasons" id="reasons"></div>
+  <div class="matchcta">
+    <button class="btn" onclick="downloadStrip(photos,'my-strip')">SAVE MY STRIP</button>
+    <button class="btn" onclick="location.reload()">TAKE IT AGAIN</button>
+    <button class="btn solid" onclick="alert('Screenshot this screen to share your match.')">SHARE</button>
+  </div>
+</section>
+
+<script>
+/* ---------------- DATA ---------------- */
+const QUESTIONS=[
+{t:"You walk into a party where you know almost nobody. What happens?",o:[
+ ["I find one person and accidentally talk to them for three hours.",{socialEnergy:2,depth:5}],
+ ["I explore the room first and see what happens.",{socialEnergy:4,spontaneity:3}],
+ ["I'm already looking for the person I came with.",{socialEnergy:1,spontaneity:1}],
+ ["Somehow I become friends with the most random person there.",{socialEnergy:5,spontaneity:5}]]},
+{t:"Your ideal friendship is mostly…",o:[
+ ["Sending each other 47 reels a day.",{humor:4,communication:5}],
+ ["Deep conversations at 2AM.",{depth:5,communication:3}],
+ ["Random plans and spontaneous adventures.",{spontaneity:5,adventure:4}],
+ ["Comfortable silence where nobody has to try.",{depth:4,communication:1}]]},
+{t:"Your friend hasn't replied for 7 hours. You…",o:[
+ ["Assume they're busy.",{communication:2,depth:2}],
+ ["Send another completely unrelated message.",{communication:5,humor:4}],
+ ["Overthink it for approximately 46 minutes.",{depth:4,communication:3}],
+ ["Forget you even texted them.",{communication:1,spontaneity:2}]]},
+{t:"Your perfect Saturday sounds like…",o:[
+ ["Going somewhere I've never been.",{adventure:5,spontaneity:4}],
+ ["Staying home with music, books, or movies.",{adventure:1,creativity:4}],
+ ["Getting dressed with absolutely no plan.",{spontaneity:5,adventure:3}],
+ ["Meeting friends and letting the day figure itself out.",{socialEnergy:4,spontaneity:4}]]},
+{t:"Your sense of humor is closest to…",o:[
+ ["Dry and sarcastic.",{humor:2}],["Completely unhinged.",{humor:5}],
+ ["Extremely niche references.",{humor:4,creativity:4}],["You had to be there.",{humor:3,communication:4}]]},
+{t:"You know you've become close to someone when…",o:[
+ ["You can sit in silence comfortably.",{depth:5,communication:1}],
+ ["You start sending them things that remind you of them.",{communication:5,humor:3}],
+ ["You can tell them literally anything.",{depth:5,communication:4}],
+ ["You have an absurd amount of inside jokes.",{humor:5,communication:4}]]},
+{t:"When a friendship hits a rough patch, you…",o:[
+ ["Say something directly, right away.",{communication:5,depth:3}],
+ ["Need space before you can talk about it.",{communication:2,depth:3}],
+ ["Try to smooth it over with humor first.",{humor:4,communication:3}],
+ ["Wait for them to bring it up.",{communication:1,depth:2}]]},
+{t:"A song, a scene, a smell — something reminds you of someone. You…",o:[
+ ["Send it immediately, no caption.",{communication:5,humor:3}],
+ ["Save it to tell them in person.",{depth:4,communication:2}],
+ ["Write a whole paragraph about it.",{depth:5,creativity:4}],
+ ["Think about it and move on.",{communication:1}]]},
+{t:"Pick the closest thing to a personality trait for you.",o:[
+ ["Music as a whole identity.",{creativity:4,interests:["music"]}],
+ ["Getting attached to fictional characters.",{depth:4,interests:["stories"]}],
+ ["Always halfway through planning a trip.",{adventure:5,interests:["travel"]}],
+ ["Making things — writing, art, anything.",{creativity:5,interests:["making"]}]]},
+{t:"Consistency or spontaneity — what actually feels like care?",o:[
+ ["Showing up the same way, every time.",{spontaneity:1,depth:4}],
+ ["Surprising them out of nowhere.",{spontaneity:5,humor:3}],
+ ["A bit of both, depending on the person.",{spontaneity:3,depth:3}],
+ ["Being there right when it matters.",{depth:5,spontaneity:2}]]}
+];
+
+const MOCK=[
+["Maya",20,"Canada"],["Noor",22,"Egypt"],["Theo",19,"Germany"],["Priya",21,"India"],
+["Kenji",23,"Japan"],["Alex",20,"UK"],["Sofia",19,"Argentina"],["Wren",22,"USA"],
+["Ines",21,"Portugal"],["Rafael",24,"Brazil"],["Leila",20,"Lebanon"],["Sam",23,"Australia"],
+["Dara",19,"Ireland"],["Yuki",22,"Japan"],["Omar",21,"Morocco"],["Elin",20,"Sweden"],
+["Miro",23,"Czechia"],["Anya",19,"Poland"],["Kofi",22,"Ghana"],["Lin",21,"Taiwan"]
+].map(([name,age,country],i)=>{
+  const v={};["socialEnergy","humor","communication","spontaneity","depth","creativity","adventure"].forEach(k=>v[k]=1+Math.floor(Math.random()*5));
+  const interestPool=["music","stories","travel","making"];
+  const interests=interestPool.filter(()=>Math.random()>0.5);
+  return {id:i,name,age,country,v,interests,photos:mockPhotoSet(i)};
+});
+function mockPhotoSet(seed){
+  const hues=[20,340,200,40,280];
+  return [0,1,2,3].map(j=>{
+    const h=(hues[(seed+j)%hues.length]);
+    const c=document.createElement('canvas');c.width=200;c.height=150;
+    const ctx=c.getContext('2d');
+    const g=ctx.createLinearGradient(0,0,200,150);
+    g.addColorStop(0,`hsl(${h} 35% 78%)`);g.addColorStop(1,`hsl(${h+30} 30% 62%)`);
+    ctx.fillStyle=g;ctx.fillRect(0,0,200,150);
+    return c.toDataURL();
+  });
+}
+
+/* ---------------- STATE ---------------- */
+let qi=0, answers=[], userVector={socialEnergy:0,humor:0,communication:0,spontaneity:0,depth:0,creativity:0,adventure:0};
+let userInterests=new Set();
+let photos=[]; let stream=null; let facingMode='user'; let shotIndex=0; let currentFx='none';
+const shotPrompts=["Look like you just saw someone you haven't seen in years.","Give us your most suspicious face.","Pretend this is your album cover.","Okay. Just be you."];
+
+function go(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('how').style.display = id==='landing' ? 'block':'none';
+  document.querySelector('footer').style.display = id==='landing' ? 'flex':'none';
+  window.scrollTo(0,0);}
+
+/* ---------------- QUESTIONS ---------------- */
+function renderQ(){
+  const q=QUESTIONS[qi];
+  document.getElementById('qcount').textContent=`${String(qi+1).padStart(2,'0')} / 10`;
+  document.getElementById('pbarfill').style.width=((qi+1)/10*100)+'%';
+  const qp=document.getElementById('qprompt');
+  qp.textContent=q.t; qp.style.animation='none'; void qp.offsetWidth; qp.style.animation='';
+  const wrap=document.getElementById('opts');wrap.innerHTML='';
+  wrap.style.animation='none'; void wrap.offsetWidth; wrap.style.animation='';
+  const letters=['A','B','C','D','E'];
+  q.o.forEach((opt,idx)=>{
+    const b=document.createElement('button');b.className='opt';
+    b.innerHTML=`<span class="letter">${letters[idx]}</span><span>${opt[0]}</span>`;
+    b.onclick=()=>chooseOpt(b,opt[1]);
+    wrap.appendChild(b);
+  });
+}
+function chooseOpt(btn,vals){
+  document.querySelectorAll('#opts .opt').forEach(o=>o.classList.remove('chosen'));
+  btn.classList.add('chosen');
+  Object.keys(vals).forEach(k=>{
+    if(k==='interests'){vals.interests.forEach(i=>userInterests.add(i));}
+    else userVector[k]=(userVector[k]||0)+vals[k];
+  });
+  setTimeout(()=>{
+    qi++;
+    if(qi<10){renderQ();} else {enterBoothIntro();}
+  },380);
+}
+renderQ();
+
+async function enterBoothIntro(){
+  go('boothintro');
+  const h=document.getElementById('boothline'),note=document.getElementById('boothnote'),btn=document.getElementById('boothbtn');
+  note.classList.remove('show');btn.classList.remove('show');
+  const lines=["Okay. We know a little about you.","Now we need the evidence.","Enter the booth."];
+  for(let i=0;i<lines.length;i++){
+    h.style.opacity=0;await sleep(250);
+    h.textContent=lines[i];h.style.transition='opacity .6s';h.style.opacity=1;
+    await sleep(i<lines.length-1?1300:600);
+  }
+  note.classList.add('show');btn.classList.add('show');
+}
+
+/* ---------------- CAMERA ---------------- */
+let camReady=false, multiCam=false;
+async function startBooth(){
+  go('booth');shotIndex=0;photos=[];camReady=false;
+  document.getElementById('retakebtn').disabled=true;
+  document.getElementById('shotbtn').disabled=true;
+  updateShotUI();
+  await openCam();
+}
+function setCamInfo(text,{spinner=false,retry=false}={}){
+  const box=document.getElementById('caminfo');
+  document.getElementById('camspinner').style.display=spinner?'block':'none';
+  document.getElementById('caminfotext').textContent=text;
+  document.getElementById('camretry').style.display=retry?'inline-block':'none';
+  box.classList.remove('hidden');
+}
+function hideCamInfo(){document.getElementById('caminfo').classList.add('hidden');}
+async function openCam(){
+  camReady=false;
+  document.getElementById('shotbtn').disabled=true;
+  setCamInfo('Waking up the camera…',{spinner:true});
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+    setCamInfo("This browser can't reach a camera here.",{retry:false});
+    return;
+  }
+  try{
+    if(stream){stream.getTracks().forEach(t=>t.stop());}
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode,width:{ideal:800},height:{ideal:600}},audio:false});
+    const v=document.getElementById('cam');
+    v.srcObject=stream;
+    v.classList.toggle('mirror',facingMode==='user');
+    await new Promise(res=>{
+      if(v.readyState>=2)return res();
+      v.onloadedmetadata=()=>res();
+    });
+    try{await v.play();}catch(e){}
+    camReady=true;
+    hideCamInfo();
+    document.getElementById('shotbtn').disabled=false;
+    try{
+      const devices=await navigator.mediaDevices.enumerateDevices();
+      multiCam=devices.filter(d=>d.kind==='videoinput').length>1;
+      document.getElementById('flipbtn').disabled=!multiCam;
+    }catch(e){}
+  }catch(e){
+    if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError'){
+      setCamInfo("Looks like the booth can't see you — allow camera access in your browser to continue.",{retry:true});
+    }else if(e.name==='NotFoundError'){
+      setCamInfo("No camera found on this device.",{retry:true});
+    }else{
+      setCamInfo("The booth had a tiny existential crisis.",{retry:true});
+    }
+  }
+}
+function flipCam(){if(!multiCam)return; facingMode = facingMode==='user' ? 'environment':'user'; openCam();}
+function updateShotUI(){
+  document.getElementById('shotlabel').textContent=`PHOTO ${String(shotIndex+1).padStart(2,'0')} / 04`;
+  document.getElementById('shotprompt').textContent=shotPrompts[shotIndex];
+}
+async function beginCountdown(){
+  if(!camReady)return;
+  document.getElementById('shotbtn').disabled=true;
+  const el=document.getElementById('countel');
+  for(const n of ['3','2','1']){el.textContent=n;el.classList.add('show');await sleep(500);el.classList.remove('show');await sleep(200);}
+  const flash=document.getElementById('flashfx');flash.classList.add('go');
+  capture();
+  await sleep(80);flash.classList.remove('go');
+  document.getElementById('retakebtn').disabled=false;
+  shotIndex++;
+  if(shotIndex<4){updateShotUI();document.getElementById('shotbtn').disabled=false;document.getElementById('shotbtn').textContent='TAKE PHOTO';}
+  else{finishBooth();}
+}
+function capture(){
+  const v=document.getElementById('cam');
+  const c=document.createElement('canvas');c.width=400;c.height=300;
+  const ctx=c.getContext('2d');
+  if(facingMode==='user'){ctx.translate(400,0);ctx.scale(-1,1);}
+  ctx.drawImage(v,0,0,400,300);
+  photos.push(c.toDataURL('image/jpeg',0.9));
+}
+function retake(){
+  if(!photos.length)return;
+  photos.pop();shotIndex=Math.max(0,shotIndex-1);
+  updateShotUI();document.getElementById('shotbtn').disabled=false;document.getElementById('shotbtn').textContent='TAKE PHOTO';
+  if(shotIndex===0)document.getElementById('retakebtn').disabled=true;
+}
+function retakeAll(){startBooth();}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+async function finishBooth(){
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  go('developing');
+  await sleep(1600);
+  buildStrip();
+  go('stripview');
+}
+
+/* ---------------- STRIP ---------------- */
+function stripHTML(imgs,label){
+  return imgs.map(src=>`<img src="${src}">`).join('')+`<div class="foot">SOMEWHERE · ${label}</div>`;
+}
+function buildStrip(){
+  document.getElementById('mystrip').innerHTML=stripHTML(photos,'2026');
+  applyFx('none');
+  document.querySelectorAll('.fxbtn').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.fxbtn').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');applyFx(b.dataset.fx);
+  });
+}
+function downloadStrip(imgs,name){
+  const w=400,pad=24,gap=14,footH=44;
+  const h=pad*2 + w*4*0.75 + gap*3 + footH;
+  const c=document.createElement('canvas');c.width=w+pad*2;c.height=h;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#fdfbf7';ctx.fillRect(0,0,c.width,c.height);
+  ctx.strokeStyle='rgba(26,22,19,.16)';ctx.strokeRect(0.5,0.5,c.width-1,c.height-1);
+  let loaded=0;
+  const imEls=imgs.map(src=>{const im=new Image();im.src=src;return im;});
+  const draw=()=>{
+    imEls.forEach((im,i)=>{
+      const y=pad+i*(w*0.75+gap);
+      ctx.filter=({none:'none',warm:'sepia(.25) saturate(1.2) brightness(1.05)',bw:'grayscale(1) contrast(1.05)',film:'contrast(1.1) saturate(.85) sepia(.12)',soft:'brightness(1.12) contrast(.92) blur(.2px)'})[currentFx]||'none';
+      ctx.drawImage(im,pad,y,w,w*0.75);
+    });
+    ctx.filter='none';
+    ctx.fillStyle='#6b625a';ctx.font='italic 15px Georgia, serif';ctx.textAlign='center';
+    ctx.fillText('SOMEWHERE · 2026',c.width/2,c.height-16);
+    const a=document.createElement('a');a.download=name+'.jpg';a.href=c.toDataURL('image/jpeg',0.92);a.click();
+  };
+  imEls.forEach(im=>{im.onload=()=>{loaded++;if(loaded===imEls.length)draw();};});
+}
+function applyFx(fx){
+  currentFx=fx;
+  const map={none:'none',warm:'sepia(.25) saturate(1.2) brightness(1.05)',bw:'grayscale(1) contrast(1.05)',
+    film:'contrast(1.1) saturate(.85) sepia(.12)',soft:'brightness(1.12) contrast(.92) blur(.2px)'};
+  document.getElementById('mystrip').style.setProperty('--fx',map[fx]);
+}
+
+/* ---------------- MATCHING ---------------- */
+function findMatch(){
+  const line=document.getElementById('findingline');
+  const seq=["While you were taking your photos…","We found someone.","Somewhere in the world, someone answered these questions almost like you did."];
+  let i=0;line.textContent=seq[0];line.style.animation='none';void line.offsetWidth;line.style.animation='fadein .8s forwards';
+  const iv=setInterval(()=>{
+    i++;
+    if(i<seq.length){line.textContent=seq[i];line.style.animation='none';void line.offsetWidth;line.style.animation='fadein .8s forwards';}
+    else{clearInterval(iv);revealMatch();}
+  },1300);
+}
+function scoreAgainst(other){
+  const keys=Object.keys(userVector);
+  let simSum=0,max=keys.length*5;
+  keys.forEach(k=>{simSum+= 1-Math.abs((userVector[k]||1)-(other.v[k]||1))/5;});
+  const traitSim=simSum/keys.length; // 0..1
+  const union=new Set([...userInterests,...other.interests]);
+  const inter=[...userInterests].filter(x=>other.interests.includes(x));
+  const interestSim= union.size? inter.length/union.size : 0.5;
+  const score= traitSim*0.75 + interestSim*0.25;
+  return {score,inter};
+}
+function revealMatch(){
+  let best=null,bestScore=-1,bestInter=[];
+  MOCK.forEach(m=>{const r=scoreAgainst(m);if(r.score>bestScore){bestScore=r.score;best=m;bestInter=r.inter;}});
+  const pct=Math.round(60+bestScore*35); // keep it in a believable, non-100 range
+  document.getElementById('matchmine').innerHTML=stripHTML(photos,'2026');
+  document.getElementById('matchmine').style.setProperty('--fx',{none:'none',warm:'sepia(.25) saturate(1.2) brightness(1.05)',bw:'grayscale(1) contrast(1.05)',film:'contrast(1.1) saturate(.85) sepia(.12)',soft:'brightness(1.12) contrast(.92) blur(.2px)'}[currentFx]);
+  document.getElementById('matchtheirs').innerHTML=stripHTML(best.photos,'2026');
+  document.getElementById('theirwho').textContent=`${best.name.toUpperCase()}, ${best.age} · SOMEWHERE IN ${best.country.toUpperCase()}`;
+  document.getElementById('vibescore').innerHTML=pct+'%<small>YOUR VIBE MATCH</small>';
+  const reasons=buildReasons(best,bestInter);
+  document.getElementById('reasons').innerHTML=reasons.map(r=>`<div class="reason">${r}</div>`).join('');
+  go('match');
+}
+function buildReasons(other,inter){
+  const out=[];
+  const diff=(k)=>Math.abs((userVector[k]||1)-(other.v[k]||1));
+  if(diff('depth')<=1) out.push("You both prefer friendships where silence isn't awkward.");
+  if(diff('spontaneity')<=1) out.push("You'd both rather make a random plan than schedule one three weeks ahead.");
+  if(diff('communication')<=1) out.push("You seem to communicate through sending each other completely unnecessary things.");
+  if(diff('humor')<=1) out.push("Your sense of humor lands in roughly the same, slightly odd place.");
+  if(inter.length) out.push(`You both circled around ${inter.join(' and ')} without meaning to.`);
+  if(diff('adventure')<=1) out.push("Neither of you needs much of a plan to say yes to something new.");
+  if(!out.length) out.push("You're different enough to keep it interesting — and that's kind of the point.");
+  return out.slice(0,4);
+}
+</script>
+</body>
+</html>
